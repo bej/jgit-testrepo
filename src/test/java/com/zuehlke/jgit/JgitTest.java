@@ -1,4 +1,4 @@
-package com.zuehlke.library;
+package com.zuehlke.jgit;
 
 import static org.junit.Assert.assertNotNull;
 

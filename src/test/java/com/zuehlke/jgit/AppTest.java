@@ -1,4 +1,4 @@
-package com.zuehlke.library;
+package com.zuehlke.jgit;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
