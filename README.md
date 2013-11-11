@@ -14,5 +14,3 @@ gitrepository=<uri of cloned/forked repo>
 ```
 
 - run `mvn test`
-
-test
