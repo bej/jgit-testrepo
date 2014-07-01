@@ -26,36 +26,14 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class JgitTest {
+public class JgitTest extends AbstractJgitTest {
     
-    private static String localPath = System.getProperty("java.io.tmpdir") + "jgittest/testrepo";
-    private String remotePath;
-    private Repository localRepo;
-    private Git git;
-    
-    public static void deleteFolder(File folder) {
-        File[] files = folder.listFiles();
-        if (files != null) { // some JVMs return null for empty dirs
-            for (File f : files) {
-                if (f.isDirectory()) {
-                    deleteFolder(f);
-                } else {
-                    f.delete();
-                }
-            }
-        }
-        folder.delete();
-    }
-    
-    private void logCommit(RevCommit commit) {
+    protected void logCommit(final RevCommit commit) {
         System.out.println("Commit");
         System.out.println("commit.name: " + commit.getName());
         System.out.println("commit.message: " + commit.getFullMessage());
@@ -66,58 +44,22 @@ public class JgitTest {
                 + ")");
     }
     
-    private CredentialsProvider getCredentialsProvider() {
-        Properties prop = new Properties();
+    protected CredentialsProvider getCredentialsProvider() {
+        final Properties prop = new Properties();
         
         try {
             // load a properties file
             prop.load(new FileInputStream("config.properties"));
             
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             ex.printStackTrace();
         }
         
-        String gitUser = prop.getProperty("gituser");
-        String gitPassword = prop.getProperty("gitpassword");
+        final String gitUser = prop.getProperty("gituser");
+        final String gitPassword = prop.getProperty("gitpassword");
         
-        CredentialsProvider cp = new UsernamePasswordCredentialsProvider(gitUser, gitPassword);
+        final CredentialsProvider cp = new UsernamePasswordCredentialsProvider(gitUser, gitPassword);
         return cp;
-    }
-    
-    private String getRemoteRepoUri() {
-        String repoUri = "https://github.com/bej/jgit-testrepo.git";
-        Properties prop = new Properties();
-        try {
-            // load a properties file
-            prop.load(new FileInputStream("config.properties"));
-            repoUri = prop.getProperty("gitrepository");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return repoUri;
-    }
-    
-    @Before
-    public void setUp() throws IOException {
-        remotePath = getRemoteRepoUri();
-        localRepo = new FileRepository(localPath + "/.git");
-        git = new Git(localRepo);
-    }
-    
-    @AfterClass
-    @BeforeClass
-    public static void tearDown() {
-        
-        File testDir = new File(localPath);
-        if (testDir.exists()) {
-            deleteFolder(testDir);
-        }
-        
-        File existingLocalRepo = new File(localPath + ".git");
-        if (existingLocalRepo.exists()) {
-            deleteFolder(existingLocalRepo);
-        }
-        
     }
     
     @Test
@@ -125,16 +67,20 @@ public class JgitTest {
         
         final Repository newRepo = new FileRepository(localPath + ".git");
         newRepo.create();
+        newRepo.close();
         
         assertNotNull("newRepo is null", newRepo);
     }
     
     @Test
     public void testBClone() throws IOException, InvalidRemoteException, TransportException, GitAPIException {
-        Git gitObject = Git.cloneRepository()
-                           .setURI(remotePath)
-                           .setDirectory(new File(localPath))
-                           .call();
+        final Git gitObject = Git.cloneRepository()
+                                 .setURI(remotePath)
+                                 .setDirectory(new File(localPath))
+                                 .call();
+        
+        gitObject.getRepository()
+                 .close();
         
         assertNotNull("gitObject is null", gitObject);
     }
@@ -143,9 +89,9 @@ public class JgitTest {
     public void testCAddNewFile() throws IOException, GitAPIException {
         final File myfile = new File(localPath + "/myfile");
         myfile.createNewFile();
-        DirCache dirCache = git.add()
-                               .addFilepattern("myfile")
-                               .call();
+        final DirCache dirCache = git.add()
+                                     .addFilepattern("myfile")
+                                     .call();
         
         assertNotNull("dirCache is null", dirCache);
     }
@@ -153,10 +99,10 @@ public class JgitTest {
     @Test
     public void testDCommitNewFile() throws IOException, JGitInternalException,
             UnmergedPathsException, GitAPIException {
-        Date now = new Date();
-        RevCommit commit = git.commit()
-                              .setMessage("Testrun at " + now.toString() + ": added myfile")
-                              .call();
+        final Date now = new Date();
+        final RevCommit commit = git.commit()
+                                    .setMessage("Testrun at " + now.toString() + ": added myfile")
+                                    .call();
         assertNotNull("commit is null", commit);
         
         logCommit(commit);
@@ -164,58 +110,58 @@ public class JgitTest {
     
     @Test
     public void testEPush() throws IOException, JGitInternalException, TransportException, GitAPIException {
-        CredentialsProvider cp = getCredentialsProvider();
+        final CredentialsProvider cp = getCredentialsProvider();
         
-        Iterable<PushResult> result = git.push()
-                                         .setCredentialsProvider(cp)
-                                         .call();
+        final Iterable<PushResult> result = git.push()
+                                               .setCredentialsProvider(cp)
+                                               .call();
         
         assertNotNull("push result is null", result);
     }
     
     @Test
     public void testEPushRemoveNewFile() throws InvalidRemoteException, TransportException, GitAPIException {
-        DirCache dirCache = git.rm()
-                               .addFilepattern("myfile")
-                               .call();
+        final DirCache dirCache = git.rm()
+                                     .addFilepattern("myfile")
+                                     .call();
         
         assertNotNull("dirCache is null", dirCache);
         
         // commit
-        Date now = new Date();
-        RevCommit commit = git.commit()
-                              .setMessage("Testrun at " + now.toString() + ": removed myfile")
-                              .call();
+        final Date now = new Date();
+        final RevCommit commit = git.commit()
+                                    .setMessage("Testrun at " + now.toString() + ": removed myfile")
+                                    .call();
         assertNotNull("commit is null", commit);
         
         logCommit(commit);
         
         // Push
-        CredentialsProvider cp = getCredentialsProvider();
+        final CredentialsProvider cp = getCredentialsProvider();
         
-        Iterable<PushResult> result = git.push()
-                                         .setCredentialsProvider(cp)
-                                         .call();
+        final Iterable<PushResult> result = git.push()
+                                               .setCredentialsProvider(cp)
+                                               .call();
         
         assertNotNull("push result is null", result);
     }
     
     @Test
     public void testFTrackMaster() throws IOException, JGitInternalException, GitAPIException {
-        Ref branch = git.branchCreate()
-                        .setName("testBranch")
-                        .setUpstreamMode(SetupUpstreamMode.SET_UPSTREAM)
-                        .setStartPoint("origin/master")
-                        .setForce(true)
-                        .call();
+        final Ref branch = git.branchCreate()
+                              .setName("testBranch")
+                              .setUpstreamMode(SetupUpstreamMode.SET_UPSTREAM)
+                              .setStartPoint("origin/master")
+                              .setForce(true)
+                              .call();
         
         assertNotNull("branch is null", branch);
     }
     
     @Test
     public void testGPull() throws IOException, TransportException, GitAPIException {
-        PullResult pull = git.pull()
-                             .call();
+        final PullResult pull = git.pull()
+                                   .call();
         
         assertNotNull("pull is null", pull);
     }
@@ -224,20 +170,20 @@ public class JgitTest {
     public void testHCommitWithDifferentUserConfig() throws IOException, JGitInternalException,
             UnmergedPathsException, GitAPIException {
         
-        Repository repo = git.getRepository();
+        final Repository repo = git.getRepository();
         
-        String wasEmail = repo.getConfig().getString("user", null, "email");
-        String wasName = repo.getConfig().getString("user", null, "name");
+        final String wasEmail = repo.getConfig().getString("user", null, "email");
+        final String wasName = repo.getConfig().getString("user", null, "name");
         
         // change user and mail
-        String email = "john.locke@815.com";
+        final String email = "john.locke@815.com";
         repo.getConfig().setString("user", null, "email", email);
-        String name = "John Locke";
+        final String name = "John Locke";
         repo.getConfig().setString("user", null, "name", name);
         
-        RevCommit commit = git.commit()
-                              .setMessage("Added myfile")
-                              .call();
+        final RevCommit commit = git.commit()
+                                    .setMessage("Added myfile")
+                                    .call();
         
         assertNotNull("commit is null", commit);
         assertEquals("author name does not match", name, commit.getAuthorIdent().getName());
@@ -257,12 +203,12 @@ public class JgitTest {
             UnmergedPathsException, GitAPIException {
         
         // change user and mail
-        String email = "john.locke@815.com";
-        String name = "John Locke";
-        RevCommit commit = git.commit()
-                              .setMessage("Added myfile")
-                              .setAuthor(name, email)
-                              .call();
+        final String email = "john.locke@815.com";
+        final String name = "John Locke";
+        final RevCommit commit = git.commit()
+                                    .setMessage("Added myfile")
+                                    .setAuthor(name, email)
+                                    .call();
         
         assertNotNull("commit is null", commit);
         assertEquals("author name does not match", name, commit.getAuthorIdent().getName());
